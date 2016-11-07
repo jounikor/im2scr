@@ -44,13 +44,16 @@ class zx(object):
     MAXW = 256
     MAXH = 192
     BLACKWEIGHT = 255
+    PREFERBRIGHT = None
 
-    def __init__(self, im):
+    def __init__(self, im, prefer=None):
         '''
         x.__init__(self, im) Initializes x.
 
         :param im: a PIL.Image object, which must be either in palette,
             greyscale or black and white format.
+        :param prefer: a boolean guiding the color conversion to either
+            prefer BRIGHT colors or dimmer colors in a case of conflict.
         '''
         # Do sanity checks for the im object
         if im.mode not in ("P", "L", "1"):
@@ -67,6 +70,7 @@ class zx(object):
         self._w = 0
         self._h = 0
         self._modulo = 0
+        self._preferbright = prefer
 
         #
         if im.size[0] > self.MAXW:
@@ -89,12 +93,15 @@ class zx(object):
         :param cls: the class object.
         :param name: the filename of the source picture.
         :param **kwargs: list of parameters describing the size of the final
-            picture. The parameters are:
+            picture.
+
+        The kwargs parameters are:
 
         :param x: the left corner x, defaults to zx.DEFX.
         :param y: the left corner y, defaults to zx.DEFY.
         :param w: the width of the picture, defaults to zx.MAXW.
         :param h: the height of the picture, defaults to zx.MAXW.
+        :param prefer: a boolean for preferring BRIGHT colors.
 
         :return zx object: the cropped picture ready for further
             processing.
@@ -104,17 +111,20 @@ class zx(object):
         y = zx.DEFY
         w = zx.MAXW
         h = zx.MAXH
+        prefer = zx.PREFERBRIGHT
 
         # now.. check if we need to update the picture crop size..
         if kwargs:
-            if 'x' in kwargs:
-                x = kwargs['x']
-            if 'y' in kwargs:
-                y = kwargs['y']
-            if 'w' in kwargs:
-                w = kwargs['w']
-            if 'h' in kwargs:
-                h = kwargs['h']
+            if 'xpos' in kwargs:
+                x = kwargs['xpos']
+            if 'ypos' in kwargs:
+                y = kwargs['ypos']
+            if 'width' in kwargs:
+                w = kwargs['width']
+            if 'height' in kwargs:
+                h = kwargs['height']
+            if 'prefer' in kwargs:
+                prefer = kwargs['prefer']
 
         # Check crop size..
         if w > zx.MAXW:
@@ -132,20 +142,15 @@ class zx(object):
         if y + h > im.size[1]:
             raise ValueError("Crop height bigger than picture height")
 
-        return zx(zx.crop(im, (x, y, w, h)))
+        return zx(zx.crop(im, (x, y, w, h)), prefer)
 
     #
-    # Crop victim image to a desired size and also convert the image
-    # format to 8-bit palette mode for further processing..
-    #
-    # Inputs:
-    #  box = (x,y,w,h)
-    #
-    # Returns:
-    #  Cropped image..
     #
     @classmethod
     def crop(cls, im, (x, y, w, h)):
+        '''
+        x.xrop(...) -> PIL.Image
+        '''
         box = (x, y, x + w, y + h)
 
         # Check picture size related to attributes
@@ -163,7 +168,7 @@ class zx(object):
             try:
                 tmp = tmp.convert("P", dither=Image.NONE, palette=Image.ADAPTIVE, colors=16)
             except Exception as e:
-                raise ValueError("Conversion failed: {}".format(e))
+                raise ZXException("Conversion failed: {}".format(e))
 
         return tmp
 
@@ -186,7 +191,7 @@ class zx(object):
     #
 
     def verifyrgb(self, r, g, b):
-        """ Convert RGB values into ZX Spectrum paletter RGB values.
+        """ Convert RGB values into ZX Spectrum palette RGB values.
         Also check whether colors have BRIGHT set.
 
         r is R component
@@ -216,8 +221,16 @@ class zx(object):
             else:
                 cb |= 1
 
+        # Check if we have palette conversion BRIGH conflicts..
         if c > 0 and cb > 0:
-            raise Exception("Palette conversion not successful")
+            if self._preferbright is True:
+                cb |= c
+                c = 0
+            elif self._preferbright is False:
+                c |= cb
+                cb = 0
+            else:
+                raise ZXException("Palette conversion not successful")
 
         if c == 0 and cb == 0:
             return zx._palette[0]
@@ -247,7 +260,6 @@ class zx(object):
         """
 
         outp = []
-
         i = 0
         self._hgh = 0
 
@@ -371,7 +383,7 @@ class zx(object):
         numcolors = len(hist)
 
         if numcolors - hist.count(0) > 16:
-            raise Exception("Picture uses more than 16 colors")
+            raise ZXException("Picture uses more than 16 colors")
 
         # convert RGB to ZX Spectrum palette colors
         apal = self.pal2attr(pal, numcolors)
@@ -454,7 +466,12 @@ class zx(object):
 
                 if paper and ink:
                     if (paper ^ ink) & 0x40:
-                        raise Exception("Color attribute has BRIGHT conflict")
+                        if self._preferbright is True:
+                            ink |= 0x40
+                        elif self._preferbright is False:
+                            ink &= ~0x40
+                        else:
+                            raise ZXException("Color attribute has BRIGHT conflict")
 
                 self._attr[index] = (ink | (paper << 3)) & 0xff
                 index += 1
@@ -481,7 +498,7 @@ class zx(object):
     def getAttrSize(self):
         return self._attrSize
 
-    def saveZX(self, name, withAttrs=True, linear=False):
+    def saveZX(self, name, attrs=True, linear=False):
         with open(name, "w") as f:
             if linear:
                 f.write(buffer(self._scr, 0, self._scrSize))
@@ -494,7 +511,7 @@ class zx(object):
                     f.write(buffer(self._scr, y2 * self._w, self._w))
                     y += 1
 
-            if withAttrs:
+            if attrs:
                 f.write(buffer(self._attr, 0, self._attrSize))
 
     #
@@ -523,8 +540,6 @@ class zx(object):
             # im.putpalette(self._rgb)
             px, py = 0, 0
             x, y = 0, 0
-
-            print self._w, self._h, len(self._attr)
 
             while y < self._h:
                 while x < self._w:
@@ -555,9 +570,14 @@ class zx(object):
 #
 #
 #
+
+
 if __name__ == "__main__":
+
     # command line options..
     op = argparse.ArgumentParser()
+    group1 = op.add_mutually_exclusive_group()
+    group2 = op.add_mutually_exclusive_group()
     op.add_argument("-l", "--linear", dest="linear", help="save linear screen buffer",
                     action="store_true", default=False)
     op.add_argument("-x", "--xpos", dest="xpos", help="x position for cropping",
@@ -569,24 +589,28 @@ if __name__ == "__main__":
     op.add_argument("-Y", "--height", dest="height", help="crop area height",
                     action="store", type=int, default=192)
     op.add_argument("input", help="input file to convert")
-    op.add_argument("output", help="output file")
-    op.add_argument("-a", "--attrs", dest="attrs", help="file to save attributes",
-                    action="store", default=None)
-    op.add_argument("-s", "--show", dest="show", help="show final image",
-                    action="store_true", default=False)
-    op.add_argument("--bw", dest="bw", help="show final image in black and white",
-                    action="store_true", default=False)
+    op.add_argument("-o", "--output", default=None, action="store", help="optional output file")
+    group1.add_argument("-p", "--prefer", dest="prefer", default=None, action="store_true",
+                        help="In a case of color conversion conflict prefer bright colors")
+    group1.add_argument("-n", "--no-prefer", dest="prefer", default=None, action="store_false",
+                        help="In a case of color conversion conflict do not prefer bright colors")
+    op.add_argument("-a", "--no-attrs", dest="attrs", help="do not save attributes",
+                    action="store_false", default=True)
+    group2.add_argument("-s", "--show", dest="color", help="show final image in color",
+                        action="store_true", default=None)
+    group2.add_argument("-b", "--show-bw", dest="color", help="show final image in black and white",
+                        action="store_false", default=None)
 
     args = op.parse_args()
 
     # Open the file to convert..
-    # try:
-    pic = zx.open(args.input)
-    pic.showZX(color=True)
-    pic.showZX(color=False)
-    pic.saveZX("dd.scr", linear=False, withAttrs=True)
+    pic = zx.open(args.input, **vars(args))
 
-    # Open the output file/stdout..
+    # output..
+    if args.color is not None:
+        pic.showZX(args.color)
 
+    if args.output:
+        pic.saveZX(args.output, args.attrs, args.linear)
 
 # /* ex: set tabstop=8 softtabstop=0 shiftwidth=4 smarttab autoindent  /*

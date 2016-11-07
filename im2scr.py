@@ -64,8 +64,8 @@ class zx(object):
         self._attr = bytearray(32 * 24)
         self._scrSize = 0
         self._attrSize = 0
-        self._mid = 0
-        self._hgh = 0
+        self._mid = zx.BRIGHT0
+        self._hgh = zx.BRIGHT1
         self._linear = False             # save linear or zx screen buffer
         self._w = 0
         self._h = 0
@@ -204,19 +204,22 @@ class zx(object):
         cb = 0
 
         if r >= zx.BLACKTRESH:
-            if abs(r - self._mid) < abs(r - self._hgh):
+            #if abs(r - self._mid) < abs(r - self._hgh):
+            if r <=self._mid:
                 c = 4
             else:
                 cb = 4
 
         if g >= zx.BLACKTRESH:
-            if abs(g - self._mid) < abs(g - self._hgh):
+            #if abs(g - self._mid) < abs(g - self._hgh):
+            if g <= self._mid:
                 c |= 2
             else:
                 cb |= 2
 
         if b >= zx.BLACKTRESH:
-            if abs(b - self._mid) < abs(b - self._hgh):
+            #if abs(b - self._mid) < abs(b - self._hgh):
+            if b <= self._mid:
                 c |= 1
             else:
                 cb |= 1
@@ -260,21 +263,9 @@ class zx(object):
         """
 
         outp = []
-        i = 0
-        self._hgh = 0
-
-        # find largest color component and use that for calculating
-        # non-BRIGHT colors..
-
-        while i < num*3:
-            if pal[i] > self._hgh:
-                self._hgh = pal[i]
-
-            i += 1
 
         # prepare palette
         i = 0
-        self._mid = 0.85 * self._hgh
 
         while i < num:
             r = pal[i*3+0]

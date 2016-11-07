@@ -5,10 +5,9 @@ from PIL import Image
 
 #
 # (c) 2016 Jouni Korhonen
+# Version 1
 #
 # Convert pictures suitable for ZX Spectrum screen format
-#
-#
 #
 
 
@@ -128,10 +127,10 @@ class zx(object):
 
         # Check crop size..
         if w > zx.MAXW:
-            raise ValueError("Crop width greater than {}}".format(zx.MAXW))
+            raise ValueError("Crop width greater than {}".format(zx.MAXW))
 
         if h > zx.MAXH:
-            raise ValueError("Crop height greater than {}}".format(zx.MAXH))
+            raise ValueError("Crop height greater than {}".format(zx.MAXH))
 
         # load the victim picture..
         im = Image.open(name)
@@ -604,4 +603,3 @@ if __name__ == "__main__":
     if args.output:
         pic.saveZX(args.output, args.attrs, args.linear)
 
-# /* ex: set tabstop=8 softtabstop=0 shiftwidth=4 smarttab autoindent  /*

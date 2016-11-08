@@ -7,12 +7,18 @@ from PIL import Image
 # (c) 2016 Jouni Korhonen
 # Version 1
 #
+# This is not GPL. This is not closed either. There is no
+# way controlling code put out in web anyway ;) Use at your
+# own discretion. If you make enhancements, feel free to
+# contribute them back.. or then not.
+#
 # Convert pictures suitable for ZX Spectrum screen format
 #
 
 
 class ZXException(BaseException):
-    '''The ZXException class is a base exception class for all zx object
+    '''
+    The ZXException class is a base exception class for all zx object
     specific exceptions. This class does not currently implement any own
     methods.
     '''
@@ -188,7 +194,6 @@ class zx(object):
             (0, 255, 0), (0, 255, 255), (255, 255, 0), (255, 255, 255)]
 
     #
-
     def verifyrgb(self, r, g, b):
         """ Convert RGB values into ZX Spectrum palette RGB values.
         Also check whether colors have BRIGHT set.
@@ -203,21 +208,18 @@ class zx(object):
         cb = 0
 
         if r >= zx.BLACKTRESH:
-            #if abs(r - self._mid) < abs(r - self._hgh):
             if r <=self._mid:
                 c = 4
             else:
                 cb = 4
 
         if g >= zx.BLACKTRESH:
-            #if abs(g - self._mid) < abs(g - self._hgh):
             if g <= self._mid:
                 c |= 2
             else:
                 cb |= 2
 
         if b >= zx.BLACKTRESH:
-            #if abs(b - self._mid) < abs(b - self._hgh):
             if b <= self._mid:
                 c |= 1
             else:
@@ -332,16 +334,6 @@ class zx(object):
         else:
             return 0, colors[0]
 
-        # elif len(colors) == 1:
-        #    if paper0 is None:
-        #        return colors[0], colors[0]
-        #    else:
-        #        return 0, colors[0]
-        # else:
-        #    if paper0 is None:
-        #        return colors[0], colors[1]
-        #    else:
-        #        return 0, colors[0]
 
     #
     def swappaper0(self, buf, size, pal, paper0):
@@ -421,7 +413,7 @@ class zx(object):
                 if pixel and pixel != tmp[x >> 3, y >> 3][0]:
                     gfx += 1
 
-                # with x loop
+                # within x loop
                 if gfx & 0x100:
                     self._scr[index] = (gfx & 0xff)
                     gfx = 1

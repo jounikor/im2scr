@@ -44,14 +44,10 @@ class zx(object):
     BLACKTRESH = 100
     BRIGHT0 = 0xd7
     BRIGHT1 = 0xff
-    DEFX = 0
-    DEFY = 0
     MAXW = 256
     MAXH = 192
-    BLACKWEIGHT = 255
-    PREFERBRIGHT = None
 
-    def __init__(self, im, prefer=None):
+    def __init__(self, im, prefer=None, **kwargs):
         '''
         x.__init__(self, im) Initializes x.
 
@@ -87,7 +83,8 @@ class zx(object):
         self.modulo = (self.MAXW >> 3) - self._w
 
     @classmethod
-    def open(cls, name, **kwargs):
+    def open(cls, name, xpos=0, ypos=0, width=256, height=192, 
+	     prefer=None, **kwargs):
         '''
         x.open(...) -> zx object
 
@@ -102,52 +99,33 @@ class zx(object):
 
         The kwargs parameters are:
 
-        :param x: the left corner x, defaults to zx.DEFX.
-        :param y: the left corner y, defaults to zx.DEFY.
-        :param w: the width of the picture, defaults to zx.MAXW.
-        :param h: the height of the picture, defaults to zx.MAXW.
-        :param prefer: a boolean for preferring BRIGHT colors.
+        :param xpos: the left corner x, defaults to 0.
+        :param ypos: the left corner y, defaults to 0.
+        :param width: the width of the picture, defaults to zx.MAXW i.e., 256.
+        :param height: the height of the picture, defaults to zx.MAXW i.e., 192.
+        :param prefer: a boolean for preferring BRIGHT colors, defaults to None.
 
         :return zx object: the cropped picture ready for further
             processing.
         '''
-        # the default picture crop size..
-        x = zx.DEFX
-        y = zx.DEFY
-        w = zx.MAXW
-        h = zx.MAXH
-        prefer = zx.PREFERBRIGHT
-
-        # now.. check if we need to update the picture crop size..
-        if kwargs:
-            if 'xpos' in kwargs:
-                x = kwargs['xpos']
-            if 'ypos' in kwargs:
-                y = kwargs['ypos']
-            if 'width' in kwargs:
-                w = kwargs['width']
-            if 'height' in kwargs:
-                h = kwargs['height']
-            if 'prefer' in kwargs:
-                prefer = kwargs['prefer']
 
         # Check crop size..
-        if w > zx.MAXW:
+        if width > zx.MAXW:
             raise ValueError("Crop width greater than {}".format(zx.MAXW))
 
-        if h > zx.MAXH:
+        if height > zx.MAXH:
             raise ValueError("Crop height greater than {}".format(zx.MAXH))
 
         # load the victim picture..
         im = Image.open(name)
 
         # Sanity checks..
-        if x + w > im.size[0]:
+        if xpos + width > im.size[0]:
             raise ValueError("Crop width bigger than picture width")
-        if y + h > im.size[1]:
+        if ypos + height > im.size[1]:
             raise ValueError("Crop height bigger than picture height")
 
-        return zx(zx.crop(im, (x, y, w, h)), prefer)
+        return zx(zx.crop(im, (xpos, ypos, width, height)), prefer)
 
     #
     #
@@ -501,7 +479,7 @@ class zx(object):
     #
     def showZX(self, color=False):
         '''
-        x.openZX(...)
+        x.showZX(...)
 
         Shows either a black & white or color preview of the converted
         picture.

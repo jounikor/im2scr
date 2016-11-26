@@ -7,12 +7,14 @@ from PIL import Image
 # (c) 2016 Jouni Korhonen
 # Version 1
 #
-# This is not GPL. This is not closed either. There is no
-# way controlling code put out in web anyway ;) Use at your
-# own discretion. If you make enhancements, feel free to
-# contribute them back.. or then not.
-#
 # Convert pictures suitable for ZX Spectrum screen format
+#
+#
+# This is not GPL but rather Unlicense code (see http://unlicense.org/).
+# There is no way controlling code put out in web anyway ;) Use at your
+# own discretion. If you make enhancements, feel free to contribute them
+# back.. or then not.
+#
 #
 
 

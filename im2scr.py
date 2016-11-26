@@ -4,10 +4,10 @@ import argparse
 from PIL import Image
 
 #
-# (c) 2016 Jouni Korhonen
+# Done in 2016 by Jouni Korhonen
 # Version 1
 #
-# Convert pictures suitable for ZX Spectrum screen format
+# Convert pictures suitable for ZX Spectrum screen format.
 #
 #
 # This is not GPL but rather Unlicense code (see http://unlicense.org/).

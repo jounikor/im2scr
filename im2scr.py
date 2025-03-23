@@ -5,7 +5,8 @@ from PIL import Image
 
 #
 # Done in 2016 by Jouni Korhonen
-# Version 1
+# Updated to python3 in 2025 by Jouni Korhonen
+# Version 2
 #
 # Convert pictures suitable for ZX Spectrum screen format.
 #
@@ -127,31 +128,39 @@ class zx(object):
         if ypos + height > im.size[1]:
             raise ValueError("Crop height bigger than picture height")
 
-        return zx(zx.crop(im, (xpos, ypos, width, height)), prefer)
+        bounding_box = (xpos, ypos, width, height)
+
+        return zx(zx.crop(im, bounding_box), prefer)
 
     #
     #
     @classmethod
-    def crop(cls, im, (x, y, w, h)):
+    def crop(cls, im, bbox):
         '''
-        x.xrop(...) -> PIL.Image
+        x.crop(...) -> PIL.Image
         '''
-        box = (x, y, x + w, y + h)
+        #box = (bbox.x, bbox.y, bbox.x + bbox.w, bbox.y + bbox.h)
+        x = bbox[0]
+        y = bbox[1]
+        w = bbox[2]
+        h = bbox[3]
+        box = (bbox[0], bbox[1], bbox[0] + bbox[2], bbox[1] + bbox[3])
 
         # Check picture size related to attributes
         if (x + w) % 8 != 0:
-            print "**Warning: picture crop x size not divisible by 8"
+            print("**Warning: picture crop x size not divisible by 8")
 
         if (y + h) % 8 != 0:
-            print "**Warning: picture crop y size not divisible by 8"
+            print("**Warning: picture crop y size not divisible by 8")
 
         # Crop the picture as desired..
         tmp = im.crop(box)
 
-        # Convert victing to palette mode picture if it is not already..
+        # Convert victimg to palette mode picture if it is not already..
         if tmp.mode not in ("P", "L", "1"):
             try:
                 tmp = tmp.convert("P", dither=Image.NONE, palette=Image.ADAPTIVE, colors=16)
+                #tmp = tmp.convert("P", dither=Image.FLOYDSTEINBERG, palette=Image.ADAPTIVE, colors=16)
             except Exception as e:
                 raise ZXException("Conversion failed: {}".format(e))
 
@@ -317,8 +326,8 @@ class zx(object):
 
     #
     def swappaper0(self, buf, size, pal, paper0):
-        for y in xrange(size[1]):
-            for x in xrange(size[0]):
+        for y in range(size[1]):
+            for x in range(size[0]):
                 pixel = buf[x, y]
 
                 if pixel == paper0:
@@ -341,10 +350,9 @@ class zx(object):
         '''
         pal = im.getpalette()
         hist = im.histogram()
+        numcolors = len(hist) - hist.count(0)
 
-        numcolors = len(hist)
-
-        if numcolors - hist.count(0) > 16:
+        if numcolors > 16:
             raise ZXException("Picture uses more than 16 colors")
 
         # convert RGB to ZX Spectrum palette colors
@@ -379,10 +387,10 @@ class zx(object):
         #
         index = 0
 
-        for y in xrange(im.size[1]):
+        for y in range(im.size[1]):
             gfx = 1
 
-            for x in xrange(im.size[0]):
+            for x in range(im.size[0]):
                 gfx = gfx << 1
 
                 # Pixel with index 0 is treated specially.
@@ -421,8 +429,8 @@ class zx(object):
         y8 = self._h
         y8 = y8 >> 3 if not y8 % 8 else (y8 >> 3) + 1
 
-        for y in xrange(y8):
-            for x in xrange(self._w):
+        for y in range(y8):
+            for x in range(self._w):
                 paper = apal[tmp[x, y][0]]
                 ink = apal[tmp[x, y][1]]
 
@@ -441,16 +449,16 @@ class zx(object):
         self._attrSize = index
 
         #
-        return buffer(self._scr), buffer(self._attr)
+        return memoryview(self._scr), memoryview(self._attr)
 
     #
     #
     def getAttr(self):
-        return buffer(self._attr, 0, self._attrSize)
+        return memoryview(self._attr, 0, self._attrSize)
 
     #
     def getScr(self):
-        return buffer(self._scr, 0, self._scrSize)
+        return memoryview(self._scr, 0, self._scrSize)
 
     #
     def getScrSize(self):
@@ -463,18 +471,18 @@ class zx(object):
     def saveZX(self, name, attrs=True, linear=False):
         with open(name, "w") as f:
             if linear:
-                f.write(buffer(self._scr, 0, self._scrSize))
+                f.write(memoryview(self._scr, 0, self._scrSize))
             else:
                 if self._h % 64 != 0:
                     raise ZXException("Cannot save an image because height is not mod 64")
                 y = 0
                 while y < self._h:
                     y2 = zx.y2zx(y)
-                    f.write(buffer(self._scr, y2 * self._w, self._w))
+                    f.write(memoryview(self._scr, y2 * self._w, self._w))
                     y += 1
 
             if attrs:
-                f.write(buffer(self._attr, 0, self._attrSize))
+                f.write(memoryview(self._attr, 0, self._attrSize))
 
     #
     #
@@ -493,7 +501,7 @@ class zx(object):
         '''
 
         if not color:
-            b = buffer(self._scr)
+            b = memoryview(self._scr)
             im = Image.frombuffer("1", (self._w << 3, self._h), b, "raw", "1", 0, 1)
         else:
             # Get a copy of the frame buffer
@@ -511,7 +519,7 @@ class zx(object):
                     paperIndex = c >> 3
 
                     # This is slow.. but with this few pixels we do not care.
-                    for n in xrange(8):
+                    for n in range(8):
                         if b & 0x80:
                             im.putpixel((px, py), self._rgb[inkIndex])
                             # im[px, py] = self._rgb[inkIndex]

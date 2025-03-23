@@ -1,0 +1,2 @@
+# We need PIL
+pillow==10.4.0

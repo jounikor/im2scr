@@ -1,7 +1,7 @@
 # im2scr
 A simple python tool to convert any picture format supported by PIL.Image to ZX Spectrum or linear format.
 
-The tool also supports cropping the original source picture to any size. IT
+The tool also supports cropping the original source picture to any size. It
 is also possible to preview converted pictures in both colors and black
 and white.
 
@@ -11,4 +11,5 @@ the PAPER0 with no pixels has the highest priority. After that the color
 with most pixels gets selected. Therefore, use well "behaving" pictures as
 source pictures.
 
-
+To install the required packages (under your global or virtual environment)
+use:  pip install -r requirements.txt
